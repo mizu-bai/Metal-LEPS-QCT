@@ -39,7 +39,7 @@ let initialSeparation = 10.0  // Angstrom
 
 let massesAmu = [1.008, 1.008, 1.008]
 
-let trajectoryCount = 5000
+let trajectoryCount = 1_000_000
 
 nonisolated(unsafe) let sampler = InitialStateSampler()
 
@@ -92,14 +92,16 @@ let stepsPerBlock: UInt = 100
 let blockCount: UInt = 100
 
 for _ in 0..<blockCount {
-    integrator.integrate(
-        positions: &positionsBatch,
-        momenta: &momentaBatch,
-        parameters: parameters,
-        masses: massesAmu.map { Float($0) },
-        timeStep: timeStep,
-        totalSteps: stepsPerBlock
-    )
+    autoreleasepool {
+        integrator.integrate(
+            positions: &positionsBatch,
+            momenta: &momentaBatch,
+            parameters: parameters,
+            masses: massesAmu.map { Float($0) },
+            timeStep: timeStep,
+            totalSteps: stepsPerBlock
+        )
+    }
 }
 
 // analyze
