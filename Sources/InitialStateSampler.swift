@@ -140,7 +140,6 @@ class InitialStateSampler {
         let relativeMomentaA = simd_double3(0.0, 0.0, -massA * relativeVelocity)
 
         // COM
-
         let centerOfMassPosition =
             (relativePositionA * massA
                 + relativePositionB * massB
@@ -199,6 +198,18 @@ class InitialStateSampler {
         return vGrid[i] * (1.0 - t) + vGrid[i + 1] * t
     }
 
+    private func effectivePotential(
+        r: Double,
+        J: Double,
+        reducedMass: Double,
+        rGrid: [Double],
+        vGrid: [Double]
+    ) -> Double {
+        let vPotential = interpolatePotential(r: r, rGrid: rGrid, vGrid: vGrid)
+        let vCentrifugal = (J * (J + 1.0)) / (2.0 * reducedMass * r * r)
+        return vPotential + vCentrifugal
+    }
+
     private func calculateRadialForce(
         r: Double,
         rGrid: [Double],
@@ -208,19 +219,22 @@ class InitialStateSampler {
     ) -> Double {
         let eps: Double = 1.0e-05
 
-        let vEffective: (Double) -> Double = { radius in
-            let vPotential = self.interpolatePotential(
-                r: radius,
+        return
+            -(effectivePotential(
+                r: r + eps,
+                J: J,
+                reducedMass: reducedMass,
                 rGrid: rGrid,
                 vGrid: vGrid
             )
-            let vCentrifugal =
-                (J * (J + 1.0)) / (2.0 * reducedMass * radius * radius)
-
-            return vPotential + vCentrifugal
-        }
-
-        return -(vEffective(r + eps) - vEffective(r - eps)) / (2.0 * eps)
+            - effectivePotential(
+                r: r - eps,
+                J: J,
+                reducedMass: reducedMass,
+                rGrid: rGrid,
+                vGrid: vGrid
+            ))
+            / (2.0 * eps)
     }
 
     private func generateVibrationalPool(
@@ -237,20 +251,14 @@ class InitialStateSampler {
         var minIndex = 0
         var minValue = Double.greatestFiniteMagnitude
 
-        let vEffective: (Double) -> Double = { radius in
-            let vPotential = self.interpolatePotential(
-                r: radius,
+        for i in 0..<rGrid.count {
+            let value = effectivePotential(
+                r: rGrid[i],
+                J: J,
+                reducedMass: reducedMass,
                 rGrid: rGrid,
                 vGrid: vGrid
             )
-            let vCentrifugal =
-                (J * (J + 1.0)) / (2.0 * reducedMass * radius * radius)
-
-            return vPotential + vCentrifugal
-        }
-
-        for i in 0..<rGrid.count {
-            let value = vEffective(rGrid[i])
 
             if value < minValue {
                 minValue = value
@@ -280,7 +288,7 @@ class InitialStateSampler {
         for _ in 0..<20000 {
             pool.append((r, momenta))
 
-            let radicalForce = calculateRadialForce(
+            let radialForce = calculateRadialForce(
                 r: r,
                 rGrid: rGrid,
                 vGrid: vGrid,
@@ -289,14 +297,14 @@ class InitialStateSampler {
             )
 
             // a(t) = f(t) / m
-            let acceleration = radicalForce / reducedMass
+            let acceleration = radialForce / reducedMass
 
             // x(t + dt) = x(t) + v * dt + 1/2 * a * dt * dt
             let rNext =
                 r + (momenta / reducedMass) * timeStep + 0.5 * acceleration
                 * timeStep * timeStep
 
-            let radicalForceNext = calculateRadialForce(
+            let radialForceNext = calculateRadialForce(
                 r: rNext,
                 rGrid: rGrid,
                 vGrid: vGrid,
@@ -306,7 +314,7 @@ class InitialStateSampler {
 
             // p(t + dt) = p(t) + 0.5 * (f(t) + f(t + dt)) * dt
             let momentaNext =
-                momenta + 0.5 * (radicalForce + radicalForceNext) * timeStep
+                momenta + 0.5 * (radialForce + radialForceNext) * timeStep
 
             if r <= rEq && rNext > rEq {
                 if hasCrossedNegative {

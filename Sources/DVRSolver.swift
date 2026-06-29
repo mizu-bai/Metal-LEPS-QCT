@@ -30,7 +30,7 @@ func dvrSolve(diatomicState: DiatomicState, rGrid: [Double], vGrid: [Double])
         let r = rGrid[i]
 
         // effective potential
-        let vEfficient =
+        let vEffective =
             vGrid[i] + (diatomicState.J * (diatomicState.J + 1.0))
             / (2.0 * diatomicState.reducedMass * r * r)
 
@@ -41,7 +41,7 @@ func dvrSolve(diatomicState: DiatomicState, rGrid: [Double], vGrid: [Double])
                 // diag terms
                 let tDiag = coefficient * (Double.pi * Double.pi / 3.0)
 
-                hMatrix[index] = tDiag + vEfficient
+                hMatrix[index] = tDiag + vEffective
             } else {
                 // off-diag terms
                 let diff = Double(i - j)

@@ -7,8 +7,8 @@ using namespace metal;
 // London-Eyring-Polanyi-Sato Potential
 struct LEPSParameters {
     float De;    // kJ/mol
-    float alpha; // Angstorm^-1
-    float r_e;   // Angstorm
+    float alpha; // Angstrom^-1
+    float r_e;   // Angstrom
     float delta; // Sato parameter related value: (1.0f - S) / (1.0f + S)
 };
 

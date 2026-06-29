@@ -6,8 +6,8 @@ let S: Float = 0.106  // Sato parameter
 
 var parameters = LEPSParameters(
     De: 457.7,  // kJ/mol
-    alpha: 1.942,  // Angstorm^-1
-    r_e: 0.741,  // Angstorm
+    alpha: 1.942,  // Angstrom^-1
+    r_e: 0.741,  // Angstrom
     delta: (1.0 - S) / (1.0 + S)  // Sato parameter related delta value
 )
 
@@ -88,21 +88,26 @@ let integrator = VelocityVerletIntegrator(
 )
 
 let timeStep: Float = 0.1  // fs
-let stepsPerBlock: UInt = 100
-let blockCount: UInt = 100
+let stepsPerBlock: UInt32 = 100
+let blockCount: UInt32 = 100
+
+// prepare GPU buffers once
+let massesFloat = massesAmu.map { Float($0) }
+integrator.prepare(
+    positions: positionsBatch,
+    momenta: momentaBatch,
+    masses: massesFloat
+)
 
 for _ in 0..<blockCount {
-    autoreleasepool {
-        integrator.integrate(
-            positions: &positionsBatch,
-            momenta: &momentaBatch,
-            parameters: parameters,
-            masses: massesAmu.map { Float($0) },
-            timeStep: timeStep,
-            totalSteps: stepsPerBlock
-        )
-    }
+    integrator.dispatch(
+        parameters: parameters,
+        timeStep: timeStep,
+        totalSteps: stepsPerBlock
+    )
 }
+
+(positionsBatch, momentaBatch) = integrator.finalize()
 
 // analyze
 var nonReactiveCount = 0  // A + BC -> A + BC
