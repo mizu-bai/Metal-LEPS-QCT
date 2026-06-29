@@ -1,6 +1,10 @@
 # VScode
 .vscode/
 
+.swiftpm/
+
+.clangd
+
 # Bad Apple
 .DS_Store
 

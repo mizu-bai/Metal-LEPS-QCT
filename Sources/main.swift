@@ -41,7 +41,7 @@ let massesAmu = [1.008, 1.008, 1.008]
 
 let trajectoryCount = 5000
 
-let sampler = InitialStateSampler()
+nonisolated(unsafe) let sampler = InitialStateSampler()
 
 sampler.prepare(
     v: vibrationalLevel,
@@ -50,22 +50,37 @@ sampler.prepare(
     masses: massesAmu
 )
 
-var positionsBatch = [simd_float3]()
-positionsBatch.reserveCapacity(trajectoryCount * 3)
+nonisolated(unsafe) var positionsBatch = [simd_float3](
+    repeating: simd_float3(repeating: 0.0),
+    count: trajectoryCount * 3
+)
+nonisolated(unsafe) var momentaBatch = [simd_float3](
+    repeating: simd_float3(repeating: 0.0),
+    count: trajectoryCount * 3
+)
 
-var momentaBatch = [simd_float3]()
-momentaBatch.reserveCapacity(trajectoryCount * 3)
+DispatchQueue.concurrentPerform(
+    iterations: trajectoryCount,
+    execute: { t in
+        autoreleasepool {
+            let (initialPositions, initialMomenta) = sampler.sample(
+                collisionEnergy: collisionEnergy,
+                impactParameter: impactParameter,
+                initialSeparation: initialSeparation
+            )
 
-for _ in 0..<trajectoryCount {
-    let (initialPositions, initialMomenta) = sampler.sample(
-        collisionEnergy: collisionEnergy,
-        impactParameter: impactParameter,
-        initialSeparation: initialSeparation
-    )
+            let offset = t * 3
 
-    positionsBatch.append(contentsOf: initialPositions)
-    momentaBatch.append(contentsOf: initialMomenta)
-}
+            positionsBatch[offset + 0] = initialPositions[0]
+            positionsBatch[offset + 1] = initialPositions[1]
+            positionsBatch[offset + 2] = initialPositions[2]
+
+            momentaBatch[offset + 0] = initialMomenta[0]
+            momentaBatch[offset + 1] = initialMomenta[1]
+            momentaBatch[offset + 2] = initialMomenta[2]
+        }
+    }
+)
 
 // propagation
 let integrator = VelocityVerletIntegrator(
