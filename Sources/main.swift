@@ -91,7 +91,7 @@ let timeStep: Float = 0.1  // fs
 let stepsPerBlock: UInt = 100
 let blockCount: UInt = 100
 
-for _ in 1..<blockCount {
+ for _ in 0..<blockCount {
     integrator.integrate(
         positions: &positionsBatch,
         momenta: &momentaBatch,

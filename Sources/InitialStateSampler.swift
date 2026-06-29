@@ -208,7 +208,7 @@ class InitialStateSampler {
     ) -> Double {
         let eps: Double = 1.0e-05
 
-        let vEfficient: (Double) -> Double = { radius in
+        let vEffective: (Double) -> Double = { radius in
             let vPotential = self.interpolatePotential(
                 r: radius,
                 rGrid: rGrid,
@@ -220,7 +220,7 @@ class InitialStateSampler {
             return vPotential + vCentrifugal
         }
 
-        return -(vEfficient(r + eps) - vEfficient(r - eps)) / (2.0 * eps)
+        return -(vEffective(r + eps) - vEffective(r - eps)) / (2.0 * eps)
     }
 
     private func generateVibrationalPool(
@@ -233,11 +233,11 @@ class InitialStateSampler {
         let J = state.J
         let totalEnergy = state.energy
 
-        // find minima on efficient potential
+        // find minima on effective potential
         var minIndex = 0
         var minValue = Double.greatestFiniteMagnitude
 
-        let vEfficient: (Double) -> Double = { radius in
+        let vEffective: (Double) -> Double = { radius in
             let vPotential = self.interpolatePotential(
                 r: radius,
                 rGrid: rGrid,
@@ -250,7 +250,7 @@ class InitialStateSampler {
         }
 
         for i in 0..<rGrid.count {
-            let value = vEfficient(rGrid[i])
+            let value = vEffective(rGrid[i])
 
             if value < minValue {
                 minValue = value
